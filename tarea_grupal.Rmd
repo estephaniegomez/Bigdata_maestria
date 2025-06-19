@@ -1,0 +1,476 @@
+---
+title: "Tarea grupal Visualización de Datos"
+author: "Eyleen Granados Peralta, Natalia Villalobos Gatjens, Estephanie Gómez Ramírez, Luciana Arias Alvarado"
+date: "2025-06-19"
+output: html_document
+---
+
+En esta tarea tiene dos partes principales:
+
+Parte 1: Consiste en el uso de Tableau para crear el dashboard, este es el link
+
+https://public.tableau.com/views/Tableau-TrabajoAsignatura5-Final/Dashboard1?:language=en-US&publish=yes&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link 
+
+
+Parte 2: Visualización de los datos utilizando R markdown 
+
+
+Este notebook desarrolla la segunda parte del trabajo, centrada en la visualización de datos utilizando R, a partir del conjunto de datos Muestra - Supertienda, proporcionado como parte del ejercicio grupal.
+
+
+En primer lugar se exporta los datos facilitados en el enunciado y se hace un análisis exploratorio (EDA), como aclaración contiene contiene gráficos generales ya conocidos durante el estudio del curso, sin embargo, representan un complemento del estudio, reforzando la importancia de iniciar todo proceso analítico con una comprensión general del dataset. Cada bloque del informe se encuentra debidamente identificado y acompañado de una breve descripción que explica su propósito.
+ 
+
+Para cumplir con la consigna de utilizar gráficos no abordados en las sesiones previas del campus virtual, se realizó una revisión detallada de los contenidos de los Talleres 1, 2 y 3. Dichos talleres se enfocan principalmente en gráficos clásicos como histogramas, diagramas de dispersión, líneas, boxplots y visualizaciones tridimensionales básicas, utilizando datasets predefinidos como mpg, iris y gapminder.
+
+En función de esta revisión, se seleccionaron tres tipos de visualización no tratados previamente, los cuales aportan un enfoque más avanzado y alineado con el análisis de negocio. Las visualizaciones desarrolladas son las siguientes:
+
+1- Treemap: muestra la proporción de ventas por categoría y subcategoría.
+
+2- Gráfico de flujo (Alluvial): representa cómo fluyen los productos entre diferentes niveles jerárquicos (Segmento → Categoría → ¿Rentable?).
+
+3- Gráfico 3D interactivo: utilizando el paquete plotly, se hizo asigno una nota o score a cada region para saber cual es la que vende mas.
+
+Como un anexo, se realizó la misma interpretación del gráfico 3D pero 2D, para comparar como las visualizaciones facilitan el análisis y toma de decisiones.
+
+Para cada gráfico se explica el objetivo de negocio y un análisis del por que ese gráfico cumple con el objetivo planteado, entre los paquetes se encuentran incluso colores accesibles y divergentes.
+
+
+**Bloque 1: Instalar Paquetes** 
+
+Instalar paquetes, en caso de no tener alguno de los paquetes instalados, descomentar la linea con la libreria y ejecutar
+```{r instalar-paquetes, eval=FALSE}
+# Instalar paquetes si no están disponibles
+# install.packages("treemapify")
+# install.packages("ggalluvial")
+# install.packages("leaflet")
+# install.packages("RColorBrewer")
+# install.packages("dplyr")
+# install.packages("tidyr")
+# install.packages("readr")
+# install.packages("reshape2")
+# install.packages("scales")
+# install.packages("lubridate")
+# install.packages("plotly")
+
+```
+
+**Bloque 2: Llamar los paquetes**
+
+Llamada a los paquetes para los graficos y manipulacion de datos
+```{r librerias, message=FALSE, warning=FALSE}
+# Librerías para gráficos y manipulación de datos
+# Manipulación de datos
+library(dplyr)
+library(tidyr)
+library(readr)
+
+# Gráfico 1: Treemap
+library(ggplot2)
+library(treemapify)
+library(reshape2)
+library(plotly)
+
+# Gráfico 2: Gráfico de flujo (Alluvial)
+library(ggalluvial)
+
+# Gráfico 3: Mapa interactivo
+library(leaflet)
+
+# Paletas de colores
+library(RColorBrewer)
+library(scales)
+library(lubridate)
+```
+
+**Bloque 3: Carga de datos**
+
+Carga de Datos, los cuales estan en gitub. Los csv se encuentran en github para que cualquier usuario pueda ejectuar el codigo sin cambiar el path de las fuentes de datos.
+```{r cargar-datos, message=FALSE, warning=FALSE}
+
+url_compras <- "https://raw.githubusercontent.com/estephaniegomez/Bigdata_maestria/refs/heads/main/Muestra%20-%20Supertienda_Compras.csv"
+compras <- read.csv2(url_compras, encoding = "UTF-8")
+
+url_devoluciones <- "https://raw.githubusercontent.com/estephaniegomez/Bigdata_maestria/refs/heads/main/Muestra%20-%20Supertienda_Devoluciones.csv"
+devoluciones <- read.csv2(url_devoluciones, encoding = "UTF-8")
+
+url_personas <- "https://raw.githubusercontent.com/estephaniegomez/Bigdata_maestria/refs/heads/main/Muestra%20-%20Supertienda_Personas.csv"
+personas <- read.csv2(url_personas, encoding = "UTF-8")
+
+```
+
+**Bloque 4: Lectura de datos**
+
+Análisis exploratorio de Datos EDA, en este caso solo se lee las variables. Esta parte es importante para conocer los datos que tenemos y tener el cuidado respectivo, al momento de realizar la tarea, se revisa un momento en el excel data set de compras, se observa que las columnas se dividen con el caracter ";" y que los datos en medio tienen un tab, son detalles que probablemente un excel no maneje bien, pero R o python pueden tener un mejor manejo de esas fuentes. Por lo tanto, una lectura primera de los encabezados y que tipo de datos son, es esencial para determinar el proceso de limpieza de los datos, que se detalla en el bloque 5.
+
+```{r eda-datos, message=FALSE, warning=FALSE}
+# Exploración inicial de los tres datasets
+
+# --- Dataset: COMPRAS ---
+cat("📦 Dataset COMPRAS\n")
+cat("Observaciones:", nrow(compras), " - Variables:", ncol(compras), "\n\n")
+str(compras)
+summary(compras)
+head(compras, 3)
+
+# --- Dataset: DEVOLUCIONES ---
+cat("\n↩️ Dataset DEVOLUCIONES\n")
+cat("Observaciones:", nrow(devoluciones), " - Variables:", ncol(devoluciones), "\n\n")
+str(devoluciones)
+summary(devoluciones)
+head(devoluciones, 3)
+
+# --- Dataset: PERSONAS ---
+cat("\n👥 Dataset PERSONAS\n")
+cat("Observaciones:", nrow(personas), " - Variables:", ncol(personas), "\n\n")
+str(personas)
+summary(personas)
+head(personas, 3)
+```
+
+
+**Bloque 5: Limpieza de Datos**
+
+
+Si bien se disponía también de los archivos `devoluciones.csv` y `personas.csv`, estos no contienen identificadores clave que permitan vincularlos con los registros de `compras`. Por este motivo, se ha decidido trabajar únicamente con el dataset `compras.csv`, ya que ofrece toda la información necesaria para desarrollar visualizaciones significativas en el contexto del análisis. Se hace la limpieza de datos, debido a como estan distribuidos las líneas en el dataframe. 
+
+Otro aspecto importante es que convencionalmente cuando un dato de ganancia viene en rojo o entre paréntesis () significa que es una pérdida, este dataset también contiene pérdidas, esto denota la importancia de no aplicar a una columna valores absolutos para tener todo positivo sin entender el contexto de los datos.
+
+
+```{r limpieza-datos, message=FALSE, warning=FALSE}
+
+# Limpieza correcta de columnas numéricas
+compras$Ganancia <- as.numeric(gsub(",", ".", gsub("\\.", "", gsub("\\$", "", compras$Ganancia))))
+compras$Ventas <- as.numeric(gsub(",", ".", gsub("\\.", "", gsub("\\$", "", compras$Ventas))))
+compras$Descuento <- as.numeric(gsub("%", "", compras$Descuento)) / 100
+compras$Cantidad <- as.numeric(compras$Cantidad)
+
+# Verificar si ahora se ven bien
+
+head(compras, 3)
+summary(compras[, c("Ganancia", "Ventas", "Descuento")])
+
+
+```
+
+**Bloque 6: EDA**
+
+Gráficos generales, como aclaración pueden repetirse de acuerdo con lo visto en el curso, sin embargo, el propósito de un EDA es tener una vision general de los datos con los que se esta trabajando, de los bloques 7 en adelante ya vienen los gráficos propuestos y su objetivo de negocio.
+
+
+**Análisis de los Gráficos Generales**
+
+Los gráficos generales permiten obtener una visión exploratoria del comportamiento de las principales variables del dataset `compras`.
+
+- _Boxplot de Ventas por Categoría:_ Se observa una gran variabilidad en la categoría *Tecnología*, donde hay transacciones con ventas significativamente más altas que en *Material de oficina* o *Mobiliario*. Esto sugiere que algunos productos tecnológicos tienen precios considerablemente más elevados, lo cual tiene sentido por que son los de mayor costo de produccion.
+
+- _Boxplot de Ganancia por Segmento:_ El segmento *Empresa* tiende a generar mayores ganancias comparado con *Hogar* o *Cliente*. Esto puede reflejar que los clientes corporativos compran en mayores cantidades o productos de mayor margen.
+
+- _Histograma de Ventas:_ La mayoría de las ventas se concentran en valores bajos, lo que indica que la mayoría de las transacciones son pequeñas. Sin embargo, hay una cola hacia la derecha con algunas ventas altas, probablemente asociadas a productos tecnológicos o compras empresariales.
+
+- _Histograma de Ganancia:_ Similar al histograma de ventas, la ganancia suele ser baja en la mayoría de las transacciones, pero hay algunas muy rentables. Esto refuerza la importancia de identificar los productos o segmentos más rentables.
+
+- _Línea de Ventas Totales por Mes:_ Se identifican patrones mensuales con cierta variabilidad, lo que podría asociarse a eventos de temporada, promociones o ciclos de compra. Es relevante seguir esta línea en el análisis temporal para detectar tendencias o estacionalidades.
+
+En conjunto, estos gráficos refuerzan la idea de que existen diferencias significativas entre categorías de producto y segmentos de cliente, tanto en volumen de ventas como en rentabilidad.
+
+
+```{r graficos-generales, message=FALSE, warning=FALSE}
+# Paleta colorblind-friendly
+cud_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# Boxplot: Ventas por Categoría
+ggplot(compras, aes(x = Categoría, y = Ventas, fill = Categoría)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  scale_fill_manual(values = cud_palette) +
+  labs(title = "Distribución de Ventas por Categoría", x = "Categoría", y = "Ventas") +
+  theme_minimal()
+
+# Boxplot: Ganancia por Segmento
+ggplot(compras, aes(x = Segmento, y = Ganancia, fill = Segmento)) +
+  geom_boxplot() +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  scale_fill_manual(values = cud_palette) +
+  labs(title = "Distribución de Ganancia por Segmento", x = "Segmento", y = "Ganancia") +
+  theme_minimal()
+
+# Histograma: Ventas
+ggplot(compras, aes(x = Ventas)) +
+  geom_histogram(fill = "#56B4E9", bins = 30) +
+  scale_x_continuous(labels = scales::dollar_format()) +
+  labs(title = "Distribución de Ventas", x = "Ventas", y = "Frecuencia") +
+  theme_minimal()
+
+# Histograma: Ganancia
+ggplot(compras, aes(x = Ganancia)) +
+  geom_histogram(fill = "#009E73", bins = 30) +
+  scale_x_continuous(labels = scales::dollar_format()) +
+  labs(title = "Distribución de Ganancia", x = "Ganancia", y = "Frecuencia") +
+  theme_minimal()
+
+# Línea: Ventas Totales por Mes
+compras %>%
+  mutate(Mes = lubridate::floor_date(lubridate::dmy(Fecha.del.pedido), unit = "month")) %>%
+  group_by(Mes) %>%
+  summarise(VentasTotales = sum(Ventas, na.rm = TRUE)) %>%
+  ggplot(aes(x = Mes, y = VentasTotales)) +
+  geom_line(color = "#0072B2", size = 1.2) +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(title = "Ventas Totales por Mes", x = "Mes", y = "Ventas Totales") +
+  theme_minimal()
+
+
+```
+
+**Bloque 7: Gráfico Treemap**
+
+_Objetivo de negocio:_
+
+Identificar visualmente qué combinaciones de categoría y subcategoría generan mayores ventas, facilitando decisiones sobre qué líneas de producto potenciar.
+
+_Justificación del gráfico:_
+El treemap permite visualizar la proporción que representa cada grupo en términos de ventas totales. Al usar color para representar la ganancia, se obtiene un doble enfoque: volumen vs rentabilidad
+
+**Análisis del Treemap**
+
+El treemap filtrado por categoría permite identificar de forma clara qué combinaciones de categoría y subcategoría concentran mayores volúmenes de ventas y cuál es su comportamiento en términos de ganancia.
+
+En la categoría Mobiliario, destacan claramente las subcategorías Sillas y Librerías, no solo por su volumen (área del rectángulo), sino también por su buena rentabilidad (color verde medio). Mesas, en cambio, muestra una alta participación en ventas, pero con un color más cercano al amarillo, lo que indica una ganancia más baja, posiblemente marginal.
+
+En Tecnología, las subcategorías Teléfonos y Copiadoras tienen un volumen importante, siendo Copiadoras la más rentable del grupo (verde más oscuro). En contraste, Máquinas tiene un volumen menor y una ganancia moderada.
+
+Para Material de oficina, se observa una distribución más homogénea en términos de ventas entre subcategorías como Papel, Almacenamiento y Electrodomésticos. No obstante, la mayoría presentan colores cercanos al amarillo, lo cual sugiere que este grupo, en general, tiene márgenes de ganancia más reducidos.
+
+Este análisis apoya decisiones estratégicas como:
+
+- Potenciar líneas con alta venta y alta ganancia (Sillas, Copiadoras).
+
+- Revisar la rentabilidad de productos con muchas ventas pero bajo margen (Mesas).
+
+- Evaluar oportunidades de mejora en categorías con baja rentabilidad general ( Material de oficina).
+
+
+
+```{r grafico-treemap, message=FALSE, warning=FALSE}
+top_subcats <- compras %>%
+  group_by(Categoría, Subcategoría) %>%
+  summarise(Ventas = sum(Ventas), Ganancia = sum(Ganancia), .groups = "drop") %>%
+  arrange(desc(Ventas)) %>%
+  group_by(Categoría) %>%
+  slice_max(order_by = Ventas, n = 8) %>%  # top 8 por categoría
+  ungroup()
+
+ggplot(top_subcats, aes(area = Ventas, fill = Ganancia, label = Subcategoría)) +
+  geom_treemap() +
+  geom_treemap_text(colour = "black", place = "centre", grow = TRUE, reflow = TRUE, min.size = 6) +
+  scale_fill_gradient2(low = "#D55E00", mid = "#F0E442", high = "#009E73", midpoint = 0) +
+  facet_wrap(~Categoría) +
+  labs(title = "Treemap por Categoría: Ventas (tamaño) y Ganancia (color)",
+       fill = "Ganancia") +
+  theme_minimal()
+
+
+```
+
+**Bloque 8:Gráfico de Flujo**
+
+
+_Objetivo de negocio:_
+
+Visualizar el flujo de ventas desde los distintos segmentos de clientes hacia las categorías de productos, y analizar si esas ventas resultan rentables o no, con el fin de identificar combinaciones clave de segmento-categoría-rentabilidad que puedan optimizarse o replicarse.
+
+_Justificación del gráfico:_
+
+Esto facilita la toma de decisiones sobre dónde ajustar precios, enfocar promociones o mejorar márgenes, por que es una herramienta visual que permite representar relaciones jerárquicas y flujos de información entre variables categóricas, puede responder preguntas como:
+
+- ¿Qué segmentos y categorías están generando ventas con mayor rentabilidad?
+
+- ¿Dónde se están concentrando los productos menos rentables?
+
+- ¿Hay segmentos que están vendiendo mucho pero con baja ganancia?
+
+
+**Análisis del Gráfico**
+
+Segmento Cliente: Es el segmento con mayor volumen de ventas. La mayor parte de las ventas en este segmento fueron rentables (color celeste), pero hay una franja considerable que no lo fue (color rosa), especialmente en la categoría Tecnología.
+
+Segmento Empresa: También tiene una gran participación en las ventas. Sus ventas se reparten de forma más equilibrada entre Material de oficina y Tecnología. Gran parte de estas ventas fueron rentables.
+
+Pequeña empresa: Contribuye con un menor volumen de ventas. Las ventas están bien distribuidas entre las categorías, pero se observa que en Mobiliario, una parte significativa no fue rentable.
+
+Categoría Tecnología: Atrae gran volumen de ventas en todos los segmentos, especialmente en Cliente. Sin embargo, también es la categoría con más ventas no rentables, lo cual puede indicar problemas de costos, descuentos excesivos o márgenes reducidos.
+
+Material de oficina: Tiene buen comportamiento general en rentabilidad, especialmente para Empresa.
+
+Mobiliario: Aunque genera ventas importantes, muestra mayor proporción de ventas no rentables en Pequeña empresa y Cliente.
+
+
+
+```{r grafico-aluvial, message=FALSE, warning=FALSE}
+
+# Crear una variable que indique si una venta fue rentable
+# (Ganancia positiva = Rentable, Ganancia negativa o cero = No rentable)
+compras_rentabilidad <- compras %>%
+  mutate(Rentable = ifelse(Ganancia > 0, "Sí", "No")) %>%
+  group_by(Segmento, Categoría, Rentable) %>%
+  summarise(Ventas = sum(Ventas, na.rm = TRUE)) %>%
+  ungroup()
+
+# Verificamos que los datos estén en formato alluvio
+is_alluvia_form(compras_rentabilidad, axes = 1:3, silent = TRUE)
+
+# Crear el gráfico alluvial
+ggplot(compras_rentabilidad,
+       aes(axis1 = Segmento, axis2 = Categoría, axis3 = Rentable,
+           y = Ventas)) +
+  scale_x_discrete(limits = c("Segmento", "Categoría", "Rentable"), expand = c(.1, .05)) +
+  xlab("Flujo de Segmento a Rentabilidad") +
+  geom_alluvium(aes(fill = Rentable), width = 1/12) +
+  geom_stratum(width = 1/12, fill = "grey", color = "black") +
+  geom_text(stat = "stratum", aes(label = after_stat(stratum))) +
+  scale_fill_manual(values = c("No" = "#E69F00", "Sí" = "#56B4E9")) +  # ✅ Esta línea hace tu gráfico accesible
+  theme_minimal() +
+  labs(title = "Flujo de Ventas por Segmento, Categoría y Rentabilidad",
+       y = "Ventas", fill = "Rentable")
+
+
+```
+
+**Bloque 9: Gráfico 3D Scoring por regiones**
+
+
+_Objetivo de negocio:_
+
+Visualizar de forma integrada el desempeño de las ciudades en función de tres dimensiones clave (Score compuesto, rentabilidad y ciudad), para identificar territorios estratégicos, detectar desequilibrios entre ventas y ganancia, y priorizar esfuerzos comerciales donde el impacto potencial sea mayor.
+
+_Justificación del gráfico:_
+
+El gráfico 3D permite representar de forma simultánea tres variables relevantes:
+
+- Score (eje X): desempeño general basado en ventas, ganancia y descuento.
+
+- Ciudad (eje Y): agrupación geográfica.
+
+- Ganancia normalizada (eje Z y color): rentabilidad ajustada, facilita la comparación visual.
+
+Esto puede generar observaciones importantes como:
+
+- Detectar ciudades con alto score pero baja rentabilidad, que podrían estar vendiendo mucho pero generando poco margen.
+
+- Identificar ciudades equilibradas con buen score y buena ganancia, ideales para replicar estrategias.
+
+
+**Análisis del gráfico**
+
+Eje X → Score (de 0 a 1): qué tan “buena” es una ciudad en general (ventas + ganancia + descuento).
+
+Eje Y → Ciudad: cada punto representa una ciudad.
+
+Eje Z → Ganancia normalizada: qué tan rentable fue esa ciudad.
+
+Color → también representa el Score (más oscuro = mejor).
+
+El score es un cálculo aparte del dataset principal, muchas veces en el análisis propio de algún problema a veces requiere un cálculo de pesos adicional para hacer un mejor análisis, lo cual se puede realizar, en este caso se plantea hacerlo como un paso para determinar las regiones que mejor compran, 40% de la nota viene de ventas, 40% viene de ganancia y 20% viene del descuento, como analistas se definieron estos pesos, pero puede cambiar dependiendo de los factores que se consideren más relevantes, para efectos de la tarea, se tiene como objetivo plantear análisis más allá de lo que el data set engloba.
+
+Observaciones generales:
+
+- Managua, por su posición más extrema hacia la derecha (Score cercano a 1) y alta en el eje Z (ganancia normalizada cercana a 1), se presenta como una ciudad con excelente desempeño general: vende mucho, con buena ganancia y control de descuentos.
+
+- Hay ciudades como Mixco o Santiago de Cuba que tienen un Score intermedio o alto, pero una ganancia menos destacada: esto sugiere que tal vez tienen buen volumen de ventas pero con márgenes más ajustados o mayores descuentos.
+
+- Las ciudades ubicadas hacia la izquierda y parte baja del gráfico (Score bajo y poca ganancia) son zonas críticas que podrían requerir una revisión comercial: bajo rendimiento, posiblemente alto descuento o poco volumen.
+
+
+```{r grafico-3d-score-final, message=FALSE, warning=FALSE}
+
+# Calcular Score y normalizar variables
+ciudades_score <- compras %>%
+  group_by(Ciudad) %>%
+  summarise(
+    Ventas = sum(Ventas, na.rm = TRUE),
+    Ganancia = sum(Ganancia, na.rm = TRUE),
+    Descuento = mean(Descuento, na.rm = TRUE)
+  ) %>%
+  mutate(
+    Ventas_norm = (Ventas - min(Ventas)) / (max(Ventas) - min(Ventas)),
+    Ganancia_norm = (Ganancia - min(Ganancia)) / (max(Ganancia) - min(Ganancia)),
+    Descuento_norm = 1 - (Descuento - min(Descuento)) / (max(Descuento) - min(Descuento)),
+    Score = (Ventas_norm * 0.4) + (Ganancia_norm * 0.4) + (Descuento_norm * 0.2)
+  ) %>%
+  arrange(desc(Score)) %>%
+  slice_head(n = 20)
+
+# Gráfico 3D interactivo
+plot_ly(ciudades_score,
+        x = ~Score,
+        y = ~reorder(Ciudad, Score),
+        z = ~Ganancia_norm,
+        type = "scatter3d",
+        mode = "markers",
+        marker = list(size = ~Score * 10,
+                      color = ~Score,
+                      colorscale = "Viridis",
+                      showscale = TRUE,
+                      reversescale = TRUE),
+        text = ~paste("Ciudad:", Ciudad,
+                      "<br>Score:", round(Score, 2),
+                      "<br>Ganancia norm:", round(Ganancia_norm, 2))) %>%
+  layout(
+    title = "Gráfico 3D – Score y Rentabilidad por Ciudad",
+    scene = list(
+      xaxis = list(title = "Score (0 = peor, 1 = mejor)"),
+      yaxis = list(title = "Ciudad"),
+      zaxis = list(title = "Ganancia Normalizada")
+    )
+  )
+
+```
+
+**Bloque 10: Gráfico de barras 2d (ANEXO)**
+
+
+Aunque el gráfico 3D del bloque anterior (#9) permite explorar múltiples dimensiones a la vez, su interpretación puede depender del ángulo de visualización y resultar menos inmediata para ciertos usuarios. Este gráfico de barras 2D, por el contrario, ofrece una visualización clara y ordenada del Score compuesto por ciudad, facilitando la comparación directa entre territorios.
+
+Se incluye como anexo con el objetivo de demostrar que, en muchos casos, visualizaciones más simples pueden ser igualmente efectivas o incluso más representativas, especialmente cuando el objetivo es destacar valores extremos, identificar rankings o comunicar resultados a audiencias no técnicas.
+
+Además, dependiendo del volumen de datos una computadora puede tardar más renderizando la imagen y consumir más recursos, este bloque es solo para probar que también es posible llegar a conclusiones similares con gráficos más simples, por ello, a la hora de realizar un proyecto de visualización de datos, definir los requerimientos y proveer una solución integral y de fácil análisis es medular para el valor agregado al negocio.
+
+```{r grafico-barras, message=FALSE, warning=FALSE}
+
+# Usamos la misma tabla de ciudades_score del bloque anterior
+ggplot(ciudades_score, aes(x = reorder(Ciudad, Score), y = Score)) +
+  geom_col(fill = "blue") +
+  coord_flip() +
+  labs(title = "Top 20 Ciudades según Score de Desempeño",
+       x = "Ciudad",
+       y = "Score (0 = peor, 1 = mejor)") +
+  theme_minimal()
+
+```
+
+**Bloque 11: Conclusiones**
+
+
+En este bloque se escriben aprendizajes y conclusiones basados en la ejecución del enunciado.
+
+
+1- Todo trabajo de visualización de datos requiere de entender el objetivo del mensaje a transmitir, en esta tarea para cada gráfico se plantea un objetivo y se justifica el por que ese gráfico cumple dicho objetivo.
+
+2- La visualización de datos siempre requiere un paso inicial de lectura, exploración y limpieza de datos, en este trabajo a la hora de ejecutar estos pasos, hay ciertas limitaciones que el excel no trabaja tan efectivamente como R o python.
+
+3- Un aprendizaje importante, es que a veces el analista considera que a mayor cantidad de datos es mejor, en el gráfico del tree map, se considera el top 8 de mayor venta de productos por categoría si se toma en cuenta todos, esto puede dificultar el análisis del cliente.
+
+4- Respecto a las visualizaciones compartidas se puede añadir que estos outputs pueden ayudar a la estrategia comercial ya que el equipo de ventas puede enfocar esfuerzos en Material de oficina, que demuestra mayor consistencia en la rentabilidad, especialmente en el segmento Empresa.
+
+5- Estos reportes pueden alertar al equipo sobre las estrategias de precios o promociones en la categoría Tecnología, ya que, aunque tiene buen volumen de ventas, muchas de estas no generan ganancias.
+
+6- También, la reposteria, ofrece observaciones en relación con la optimización de Rentabilidad, por ejemplo, se recomienda analizar con más detalle los productos de Mobiliario en el segmento Pequeña empresa, que también muestra señales de baja rentabilidad.
+
+7- Este análisis evidenció cómo la visualización de datos, cuando es correctamente aplicada, no solo permite identificar patrones ocultos en la información, sino también facilitar la toma de decisiones estratégicas. Se compararon visualizaciones simples y avanzadas para demostrar que la efectividad del gráfico depende del contexto y del público objetivo.
+
+**Referencias Bibliográficas**
+
+FineReport. (n.d.). Comparison of data analysis tools: Excel, R, Python and BI tools. FineReport. Retrieved June 19, 2025, from https://www.finereport.com/en/data-analysis/comparison-of-data-analysis-tools-excel-r-python-and-bi.html
+
+Ollion. (n.d.). The importance of data visualization for better decision-making. Retrieved June 19, 2025, from https://ollion.com/articles/data-visualization-for-better-decision-making
+
